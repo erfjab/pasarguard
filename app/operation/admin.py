@@ -143,9 +143,7 @@ class AdminOperation(BaseOperation):
 
         return reseted_admin
 
-    async def sync_admin_groups(
-        self, db: AsyncSession, username: str, groups: list[int], users_limit: int, admin: AdminDetails
-    ) -> AdminDetails:
+    async def sync_admin_groups(self, db: AsyncSession, username: str, groups: list[int]) -> AdminDetails:
         db_admin = await self.get_validated_admin(db, username=username)
         from app.operation.group import GroupOperation
 
@@ -157,6 +155,4 @@ class AdminOperation(BaseOperation):
                 group_ids=[group.id for group in all_groups.groups if group.id not in groups],
                 users=[user.id for user in db_admin.users],
             ),
-            db_admin,
-            users_limit,
         )

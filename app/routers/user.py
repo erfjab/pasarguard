@@ -58,7 +58,7 @@ async def create_user(
     users_limit = Morebot.get_users_limit(admin.username)
     if not admin.is_sudo and users_limit is not None:
         users_count = await user_operator.get_users(db, admin=admin, status=[UserStatus.active, UserStatus.on_hold])
-        if len(users_count) >= users_limit:
+        if len(users_count.users) >= users_limit:
             raise HTTPException(
                 status_code=400,
                 detail="User limit reached. Please contact your administrator.",
@@ -102,7 +102,7 @@ async def modify_user(
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         if (
-            len(users_count) >= users_limit
+            len(users_count.users) >= users_limit
             and modified_user.status is not None
             and modified_user.status in [UserStatus.active, UserStatus.on_hold]
             and user.status == UserStatus.disabled

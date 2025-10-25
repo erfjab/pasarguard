@@ -74,11 +74,10 @@ async def get_all_groups(
     Raises:
         401: Unauthorized - If not authenticated
     """
+    groups = await group_operator.get_all_groups(db, offset, limit)
     if not admin.is_sudo:
-        groups = await group_operator.get_all_groups(db)
-        groups = Morebot.get_configs(admin.username, groups.dict())
-    else:
-        groups = await group_operator.get_all_groups(db, offset, limit)
+        filter = Morebot.get_configs(admin.username, groups.dict())
+        return filter or groups
     return groups
 
 

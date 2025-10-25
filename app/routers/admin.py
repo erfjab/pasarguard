@@ -157,14 +157,14 @@ async def reset_admin_usage(
     return await admin_operator.reset_admin_usage(db, username=username, admin=admin)
 
 
-@router.post("/{username}/sync_users", response_model=AdminDetails, responses={404: responses._404})
+@router.post("/{username}/sync_users")
 async def sync_admin_users(
     username: str,
-    groups: list[int],
-    users_limit: int,
+    data: dict,
     db: AsyncSession = Depends(get_db),
     admin: AdminDetails = Depends(check_sudo_admin),
 ):
     """Sync users of admin from Morebot."""
-    await admin_operator.sync_admin_groups(db, username=username, groups=groups, users_limit=users_limit, admin=admin)
-    await admin_operator.disable_all_active_users(db, username=username, admin=admin, offset=users_limit)
+    await admin_operator.sync_admin_groups(db, username=username, groups=data.get("groups"))
+    await admin_operator.disable_all_active_users(db, username=username, admin=admin, offset=data.get("users_limit"))
+    return {}
