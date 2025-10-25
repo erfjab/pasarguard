@@ -1,4 +1,4 @@
-import requests
+import httpx
 import logging
 from typing import Optional, Dict, List, Any
 from collections import defaultdict
@@ -17,24 +17,24 @@ class Morebot:
     @classmethod
     def get_configs(cls, username: str, configs: Any) -> Optional[Dict]:
         try:
-            response = requests.post(
+            response = httpx.post(
                 url=f"{cls._base_url}/{username}/configs",
                 json=configs,
                 timeout=cls._timeout,
             )
             response.raise_for_status()
             return response.json()
-        except requests.RequestException:
+        except httpx.HTTPError:
             return None
 
     @classmethod
     def get_users_limit(cls, username: str) -> Optional[int]:
         try:
-            response = requests.get(url=f"{cls._base_url}/{username}/users_limit", timeout=cls._timeout)
+            response = httpx.get(url=f"{cls._base_url}/{username}/users_limit", timeout=cls._timeout)
             response.raise_for_status()
             data = response.json()
             return data.get("users_limit", None)
-        except requests.RequestException:
+        except httpx.HTTPError:
             return None
 
     @classmethod
@@ -72,12 +72,12 @@ class Morebot:
             return True
 
         try:
-            response = requests.post(f"{cls._base_url}/usages", json=report_data, timeout=cls._timeout)
+            response = httpx.post(f"{cls._base_url}/usages", json=report_data, timeout=cls._timeout)
             response.raise_for_status()
             logger.info(f"✅ Report sent successfully - Total: {total_to_report / (1024**3):.2f} GB")
             cls._failed_reports.clear()
             return True
-        except requests.RequestException as e:
+        except httpx.HTTPError as e:
             logger.error(f"❌ Report failed: {str(e)}")
             for admin_id, usage in current_admin_usage.items():
                 cls._failed_reports[admin_id] += usage
