@@ -8,6 +8,8 @@ TESTING = os.getenv("TESTING", False)
 if not TESTING:
     load_dotenv()
 
+MOREBOT_SECRET = config("MOREBOT_SECRET", default="")
+MOREBOT_LICENSE = config("MOREBOT_LICENSE", default="")
 
 SQLALCHEMY_DATABASE_URL = config("SQLALCHEMY_DATABASE_URL", default="sqlite+aiosqlite:///db.sqlite3")
 SQLALCHEMY_POOL_SIZE = config("SQLALCHEMY_POOL_SIZE", cast=int, default=25)

@@ -9,6 +9,7 @@ from app.operation.admin import AdminOperation
 from app.utils import responses
 from app.utils.jwt import create_admin_token
 from .authentication import check_sudo_admin, get_current, validate_admin, validate_mini_app_admin
+from app.morebot import Morebot
 
 router = APIRouter(tags=["Admin"], prefix="/api/admin", responses={401: responses._401, 403: responses._403})
 admin_operator = AdminOperation(operator_type=OperatorType.API)
@@ -143,7 +144,8 @@ async def activate_all_disabled_users(
     username: str, db: AsyncSession = Depends(get_db), admin: AdminDetails = Depends(check_sudo_admin)
 ):
     """Activate all disabled users under a specific admin"""
-    await admin_operator.activate_all_disabled_users(db, username=username, admin=admin)
+    users_limit = Morebot.get_users_limit(admin.username)
+    await admin_operator.activate_all_disabled_users(db, username=username, admin=admin, limit=users_limit)
     return {}
 
 
@@ -153,3 +155,16 @@ async def reset_admin_usage(
 ):
     """Resets usage of admin."""
     return await admin_operator.reset_admin_usage(db, username=username, admin=admin)
+
+
+@router.post("/{username}/sync_users", response_model=AdminDetails, responses={404: responses._404})
+async def sync_admin_users(
+    username: str,
+    groups: list[int],
+    users_limit: int,
+    db: AsyncSession = Depends(get_db),
+    admin: AdminDetails = Depends(check_sudo_admin),
+):
+    """Sync users of admin from Morebot."""
+    await admin_operator.sync_admin_groups(db, username=username, groups=groups, users_limit=users_limit, admin=admin)
+    await admin_operator.disable_all_active_users(db, username=username, admin=admin, offset=users_limit)

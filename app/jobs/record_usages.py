@@ -13,6 +13,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.mysql import insert as mysql_insert
 
 from app import scheduler
+from app.morebot import Morebot
 from app.db import GetDB
 from app.db.models import Admin, NodeUsage, NodeUserUsage, System, User
 from app.node import node_manager as node_manager
@@ -363,8 +364,8 @@ async def calculate_admin_usage(users_usage: list) -> dict:
         stmt = select(User.id, User.admin_id).where(User.id.in_(uids))
         result = await db.execute(stmt)
         user_admin_pairs = result.fetchall()
-
-    user_admin_map = {uid: admin_id for uid, admin_id in user_admin_pairs}
+        user_admin_map = {uid: admin_id for uid, admin_id in user_admin_pairs}
+        Morebot.report_admin_usage(db, users_usage=users_usage, user_admin_map=user_admin_map)
 
     admin_usage = defaultdict(int)
     for user_usage in users_usage:
