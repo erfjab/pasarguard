@@ -76,7 +76,7 @@ async def get_all_groups(
     """
     if not admin.is_sudo:
         groups = await group_operator.get_all_groups(db)
-        groups = await Morebot.get_configs(admin.username, groups)
+        groups = await Morebot.get_configs(admin.username, groups.dict())
     else:
         groups = await group_operator.get_all_groups(db, offset, limit)
     return groups
