@@ -20,6 +20,8 @@ from config import (
     UVICORN_SSL_CERTFILE,
     UVICORN_SSL_KEYFILE,
     UVICORN_UDS,
+    MOREBOT_LICENSE,
+    MOREBOT_SECRET,
 )
 
 
@@ -90,6 +92,9 @@ def validate_cert_and_key(cert_file_path, key_file_path):
 if __name__ == "__main__":
     # Do NOT change workers count for now
     # multi-workers support isn't implemented yet for APScheduler and XRay module
+
+    if not MOREBOT_SECRET or not MOREBOT_LICENSE:
+        raise ValueError("MOREBOT_SECRET and MOREBOT_LICENSE must be set in environment variables.")
 
     bind_args = {}
 
