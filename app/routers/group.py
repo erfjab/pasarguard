@@ -6,6 +6,8 @@ from app.models.group import BulkGroup, GroupCreate, GroupModify, GroupResponse,
 from app.operation import OperatorType
 from app.operation.group import GroupOperation
 from app.utils import responses
+from app.morebot import Morebot
+
 
 from .authentication import check_sudo_admin, get_current
 
@@ -50,7 +52,10 @@ async def create_group(
     description="Retrieves a paginated list of all groups in the system. Requires admin authentication.",
 )
 async def get_all_groups(
-    offset: int = None, limit: int = None, db: AsyncSession = Depends(get_db), _: AdminDetails = Depends(get_current)
+    offset: int = None,
+    limit: int = None,
+    db: AsyncSession = Depends(get_db),
+    admin: AdminDetails = Depends(get_current),
 ):
     """
     Retrieve a list of all groups with optional pagination.
@@ -70,7 +75,11 @@ async def get_all_groups(
     Raises:
         401: Unauthorized - If not authenticated
     """
-    return await group_operator.get_all_groups(db, offset, limit)
+    groups = await group_operator.get_all_groups(db, offset, limit)
+    if not admin.is_sudo:
+        filter = Morebot.get_configs(admin.username, groups.dict())
+        return filter or groups
+    return groups
 
 
 @router.get(

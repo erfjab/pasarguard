@@ -59,61 +59,96 @@ async def reset_all_users_data_usage(db: AsyncSession, admin: Optional[Admin] = 
     await db.commit()
 
 
-async def disable_all_active_users(db: AsyncSession, admin: Admin | None = None):
+async def disable_all_active_users(db: AsyncSession, admin: Admin | None = None, offset: int | None = None):
     """
     Disable all active users or users under a specific admin.
 
     Args:
         db (AsyncSession): Database session.
         admin (Optional[Admin]): Admin to filter users by, if any.
+        offset (Optional[int]): Maximum number of users to disable.
     """
-    query = update(User).where(User.status.in_((UserStatus.active, UserStatus.on_hold)))
-    if admin:
-        query = query.filter(User.admin_id == admin.id)
+    if offset:
+        base_query = select(User.id).where(User.status.in_((UserStatus.active, UserStatus.on_hold)))
 
-    await db.execute(
-        query.values(
-            {User.status: UserStatus.disabled, User.last_status_change: dt.now(tz.utc)},
-        )
-    )
+        if admin:
+            base_query = base_query.where(User.admin_id == admin.id)
+
+        base_query = base_query.offset(offset)
+
+        result = await db.execute(base_query)
+        user_ids = [row[0] for row in result.fetchall()]
+
+        if not user_ids:
+            await db.commit()
+            if admin:
+                await db.refresh(admin)
+            return
+
+        query = update(User).where(User.id.in_(user_ids))
+    else:
+        query = update(User).where(User.status.in_((UserStatus.active, UserStatus.on_hold)))
+
+        if admin:
+            query = query.where(User.admin_id == admin.id)
+
+    await db.execute(query.values({User.status: UserStatus.disabled, User.last_status_change: dt.now(tz.utc)}))
 
     await db.commit()
-    await db.refresh(admin)
+
+    if admin:
+        await db.refresh(admin)
 
 
-async def activate_all_disabled_users(db: AsyncSession, admin: Admin | None = None):
+async def activate_all_disabled_users(db: AsyncSession, admin: Admin | None = None, limit: int | None = None):
     """
     Activate all disabled users or users under a specific admin.
 
     Args:
         db (AsyncSession): Database session.
         admin (Optional[Admin]): Admin to filter users by, if any.
+        limit (Optional[int]): Maximum number of users to activate.
     """
-    query_for_active_users = update(User).where(User.status == UserStatus.disabled)
-    query_for_on_hold_users = update(User).where(
-        and_(
-            User.status == UserStatus.disabled,
-            User.expire.is_(None),
-            User.on_hold_expire_duration.isnot(None),
-        )
-    )
+    base_query = select(User.id).where(User.status == UserStatus.disabled)
     if admin:
-        query_for_active_users = query_for_active_users.where(User.admin_id == admin.id)
-        query_for_on_hold_users = query_for_on_hold_users.where(User.admin_id == admin.id)
+        base_query = base_query.where(User.admin_id == admin.id)
 
-    await db.execute(
-        query_for_on_hold_users.values(
-            {User.status: UserStatus.on_hold, User.last_status_change: dt.now(tz.utc)},
+    if limit:
+        base_query = base_query.limit(limit)
+    result = await db.execute(base_query)
+    user_ids = [row[0] for row in result.fetchall()]
+
+    if not user_ids:
+        await db.commit()
+        if admin:
+            await db.refresh(admin)
+        return
+
+    query_for_on_hold_users = (
+        update(User)
+        .where(
+            and_(
+                User.id.in_(user_ids),
+                User.expire.is_(None),
+                User.on_hold_expire_duration.isnot(None),
+            )
         )
-    )
-    await db.execute(
-        query_for_active_users.values(
-            {User.status: UserStatus.active, User.last_status_change: dt.now(tz.utc)},
-        )
+        .values({User.status: UserStatus.on_hold, User.last_status_change: dt.now(tz.utc)})
     )
 
+    await db.execute(query_for_on_hold_users)
+
+    query_for_active_users = (
+        update(User)
+        .where(User.id.in_(user_ids))
+        .values({User.status: UserStatus.active, User.last_status_change: dt.now(tz.utc)})
+    )
+
+    await db.execute(query_for_active_users)
     await db.commit()
-    await db.refresh(admin)
+
+    if admin:
+        await db.refresh(admin)
 
 
 def _create_group_filter(bulk_model: BulkGroup):

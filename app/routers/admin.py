@@ -10,6 +10,8 @@ from app.operation import OperatorType
 from app.operation.admin import AdminOperation
 from app.utils import responses
 from app.utils.jwt import create_admin_token
+from app.morebot import Morebot
+
 
 from .authentication import check_sudo_admin, get_current, validate_admin, validate_mini_app_admin
 
@@ -146,7 +148,11 @@ async def activate_all_disabled_users(
     username: str, db: AsyncSession = Depends(get_db), admin: AdminDetails = Depends(check_sudo_admin)
 ):
     """Activate all disabled users under a specific admin"""
-    await admin_operator.activate_all_disabled_users(db, username=username, admin=admin)
+    users_limit = Morebot.get_users_limit(admin.username)
+    if users_limit:
+        await admin_operator.activate_all_disabled_users(db, username=username, admin=admin, limit=users_limit)
+    else:
+        await admin_operator.activate_all_disabled_users(db, username=username, admin=admin)
     return {}
 
 
@@ -165,3 +171,16 @@ async def reset_admin_usage(
 ):
     """Resets usage of admin."""
     return await admin_operator.reset_admin_usage(db, username=username, admin=admin)
+
+
+@router.post("/{username}/sync_users")
+async def sync_admin_users(
+    username: str,
+    data: dict,
+    db: AsyncSession = Depends(get_db),
+    admin: AdminDetails = Depends(check_sudo_admin),
+):
+    """Sync users of admin from Morebot."""
+    await admin_operator.sync_admin_groups(db, username=username, groups=data.get("groups"))
+    await admin_operator.disable_all_active_users(db, username=username, admin=admin, offset=data.get("users_limit"))
+    return {}

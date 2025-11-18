@@ -1,6 +1,7 @@
 from datetime import datetime as dt
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, status, HTTPException
+
 
 from app.db import AsyncSession, get_db
 from app.db.models import UserStatus
@@ -23,6 +24,8 @@ from app.operation import OperatorType
 from app.operation.node import NodeOperation
 from app.operation.user import UserOperation
 from app.utils import responses
+from app.morebot import Morebot
+
 
 from .authentication import check_sudo_admin, get_current
 
@@ -55,7 +58,14 @@ async def create_user(
     - **on_hold_expire_duration**: Duration (in seconds) for how long the user should stay in `on_hold` status.
     - **next_plan**: Next user plan (resets after use).
     """
-
+    users_limit = Morebot.get_users_limit(admin.username)
+    if not admin.is_sudo and users_limit is not None:
+        users_count = await user_operator.get_users(db, admin=admin, status=[UserStatus.active, UserStatus.on_hold])
+        if len(users_count.users) >= users_limit:
+            raise HTTPException(
+                status_code=400,
+                detail="User limit reached. Please contact your administrator.",
+            )
     return await user_operator.create_user(db, new_user=new_user, admin=admin)
 
 
@@ -87,6 +97,22 @@ async def modify_user(
 
     Note: Fields set to `null` or omitted will not be modified.
     """
+    users_limit = Morebot.get_users_limit(admin.username)
+    if not admin.is_sudo and users_limit is not None:
+        users_count = await user_operator.get_users(db, admin=admin, status=[UserStatus.active, UserStatus.on_hold])
+        user = await user_operator.get_user(db, username=username, admin=admin)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        if (
+            len(users_count.users) >= users_limit
+            and modified_user.status is not None
+            and modified_user.status in [UserStatus.active, UserStatus.on_hold]
+            and user.status == UserStatus.disabled
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="User limit reached. Please contact your administrator.",
+            )
     return await user_operator.modify_user(db, username=username, modified_user=modified_user, admin=admin)
 
 

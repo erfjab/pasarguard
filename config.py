@@ -90,6 +90,10 @@ if SQLALCHEMY_DATABASE_URL.startswith("postgresql"):
 else:
     ENABLE_RECORDING_NODES_STATS = False
 
+
+MOREBOT_SECRET = config("MOREBOT_SECRET", default="")
+MOREBOT_LICENSE = config("MOREBOT_LICENSE", default="")
+
 # Interval jobs, all values are in seconds
 JOB_CORE_HEALTH_CHECK_INTERVAL = config("JOB_CORE_HEALTH_CHECK_INTERVAL", cast=int, default=10)
 JOB_RECORD_NODE_USAGES_INTERVAL = config("JOB_RECORD_NODE_USAGES_INTERVAL", cast=int, default=30)

@@ -11,13 +11,13 @@ from sqlalchemy.dialects.mysql import insert as mysql_insert
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import DatabaseError, OperationalError
 from sqlalchemy.sql.expression import Insert
-
 from app import scheduler
 from app.db import GetDB
 from app.db.base import engine
 from app.db.models import Admin, Node, NodeUsage, NodeUserUsage, System, User
 from app.node import node_manager as node_manager
 from app.utils.logger import get_logger
+from app.morebot import Morebot
 from config import (
     DISABLE_RECORDING_NODE_USAGE,
     JOB_RECORD_NODE_USAGES_INTERVAL,
@@ -366,6 +366,8 @@ async def calculate_admin_usage(users_usage: list) -> dict:
         stmt = select(User.id, User.admin_id).where(User.id.in_(uids))
         result = await db.execute(stmt)
         user_admin_pairs = result.fetchall()
+        user_admin_map = {uid: admin_id for uid, admin_id in user_admin_pairs}
+        await Morebot.report_admin_usage(db, users_usage=users_usage, user_admin_map=user_admin_map)
 
     user_admin_map = {uid: admin_id for uid, admin_id in user_admin_pairs}
 
