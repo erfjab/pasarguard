@@ -2,6 +2,7 @@ import httpx
 import logging
 from typing import Optional, Dict, List, Any
 from collections import defaultdict
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models import Admin
 from config import MOREBOT_LICENSE, MOREBOT_SECRET
@@ -60,7 +61,8 @@ class Morebot:
         total_to_report = sum(total_admin_usage.values())
         logger.info(f"📊 Total to report: {total_to_report / (1024**3):.2f} GB")
 
-        admins = dict(await db.execute(Admin.id, Admin.username))
+        result = await db.execute(select(Admin.id, Admin.username))
+        admins = dict(result.all())
 
         report_data = [
             {"username": admins.get(admin_id, "Unknown"), "usage": int(value)}

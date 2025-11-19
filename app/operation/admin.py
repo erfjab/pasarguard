@@ -180,6 +180,6 @@ class AdminOperation(BaseOperation):
             db,
             BulkGroup(
                 group_ids=[group.id for group in all_groups.groups if group.id not in groups],
-                users=[user.id for user in db_admin.users],
+                admins=[db_admin.id],
             ),
         )
