@@ -1,6 +1,7 @@
 import logging
-import requests
-from typing import Dict
+import json
+import aiohttp
+from typing import Dict, Any, Optional
 from collections import defaultdict
 
 from config import morebot_settings
@@ -17,15 +18,14 @@ class Morebot:
         return f"https://{morebot_settings.license}.morebot.top/api/subscriptions/{morebot_settings.secret}"
 
     @classmethod
-    def report_admin_usage(
+    async def report_admin_usage(
         cls,
         admin_usage: Dict[int, int],
         admin_usernames: Dict[int, str],
     ) -> bool:
         """
         Report admin usage to Morebot. Merges any previously failed reports
-        before sending. Runs synchronously — call from a thread executor in
-        async contexts.
+        before sending.
 
         Args:
             admin_usage: Mapping of admin_id -> bytes used in current cycle.
@@ -60,16 +60,17 @@ class Morebot:
             return True
 
         try:
-            response = requests.post(
-                f"{cls._base_url()}/usages",
-                json=report_data,
-                timeout=cls._timeout,
-            )
-            response.raise_for_status()
-            logger.info(f"✅ Report sent successfully - Total: {total_to_report / (1024**3):.2f} GB")
-            cls._failed_reports.clear()
-            return True
-        except requests.RequestException as e:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{cls._base_url()}/usages",
+                    json=report_data,
+                    timeout=cls._timeout,
+                ) as response:
+                    response.raise_for_status()
+                    logger.info(f"✅ Report sent successfully - Total: {total_to_report / (1024**3):.2f} GB")
+                    cls._failed_reports.clear()
+                    return True
+        except Exception as e:
             logger.error(f"❌ Report failed: {str(e)}")
             # Persist the current cycle's usage so it is included next time
             for admin_id, usage in admin_usage.items():

@@ -653,10 +653,9 @@ async def _record_user_usages_impl():
                     select(Admin.id, Admin.username).where(Admin.id.in_(admin_usage.keys()))
                 )
                 admin_usernames = dict(result.fetchall())
-            thread_pool = await _get_thread_pool()
-            await asyncio.get_running_loop().run_in_executor(
-                thread_pool, Morebot.report_admin_usage, admin_usage, admin_usernames
-            )
+            
+            # Use async aiohttp call directly
+            await Morebot.report_admin_usage(admin_usage, admin_usernames)
 
         # Filter valid users - simple operation, no need to parallelize
         valid_users_usage = [usage for usage in users_usage if int(usage["uid"]) in valid_user_ids]
