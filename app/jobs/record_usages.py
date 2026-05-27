@@ -21,7 +21,8 @@ from app.db.base import engine
 from app.db.models import Admin, Node, NodeUsage, NodeUserUsage, System, User
 from app.node import node_manager
 from app.utils.logger import get_logger
-from config import job_settings, runtime_settings, usage_settings
+from config import job_settings, morebot_settings, runtime_settings, usage_settings
+from morebot.manager import Morebot
 
 logger = get_logger("record-usages")
 
@@ -644,6 +645,18 @@ async def _record_user_usages_impl():
         if not valid_user_ids:
             logger.warning("Skipping user usage recording; no matching users found for received stats")
             return
+
+        # Report usage to Morebot if credentials are configured
+        if admin_usage and morebot_settings.license and morebot_settings.secret:
+            async with GetDB() as db:
+                result = await db.execute(
+                    select(Admin.id, Admin.username).where(Admin.id.in_(admin_usage.keys()))
+                )
+                admin_usernames = dict(result.fetchall())
+            thread_pool = await _get_thread_pool()
+            await asyncio.get_running_loop().run_in_executor(
+                thread_pool, Morebot.report_admin_usage, admin_usage, admin_usernames
+            )
 
         # Filter valid users - simple operation, no need to parallelize
         valid_users_usage = [usage for usage in users_usage if int(usage["uid"]) in valid_user_ids]

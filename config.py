@@ -199,6 +199,12 @@ class WireGuardSettings(EnvSettings):
     reserved: str = Field(default="10.0.0.0/31", validation_alias="WIREGUARD_RESERVED")
 
 
+### MoreBot Settings
+class MorebotSettings(EnvSettings):
+    secret: str = Field(default="", validation_alias="MOREBOT_SECRET")
+    license: str = Field(default="", validation_alias="MOREBOT_LICENSE")
+
+
 database_settings = DatabaseSettings()
 server_settings = ServerSettings()
 dashboard_settings = DashboardSettings()
@@ -215,6 +221,7 @@ usage_settings = UsageSettings()
 job_settings = JobSettings()
 feature_settings = FeatureSettings()
 wireguard_settings = WireGuardSettings()
+morebot_settings = MorebotSettings()
 
 if not database_settings.is_postgresql:
     usage_settings.enable_recording_nodes_stats = False
