@@ -35,3 +35,4 @@ jobs:
                   tags: ghcr.io/erfjab/pasarguard:master
                   cache-from: type=gha
                   cache-to: type=gha,mode=max
+
