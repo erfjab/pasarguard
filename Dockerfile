@@ -20,10 +20,18 @@ ADD . /build
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 
+FROM oven/bun:latest AS frontend-builder
+WORKDIR /app
+COPY dashboard/package.json dashboard/bun.lock ./
+RUN bun install --frozen-lockfile
+COPY dashboard/ ./
+RUN VITE_BASE_API=/ bun run build --outDir build --assetsDir statics
+RUN cp build/index.html build/404.html
 
 FROM python:$PYTHON_VERSION-slim-bookworm
 
 COPY --from=builder /build /code
+COPY --from=frontend-builder /app/build /code/dashboard/build
 WORKDIR /code
 
 ENV PATH="/code/.venv/bin:$PATH"
