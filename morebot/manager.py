@@ -43,7 +43,7 @@ class Morebot:
         # Merge failed reports from previous cycles with the current cycle
         total_admin_usage: Dict[int, int] = defaultdict(int)
         for admin_id, failed_usage in cls._failed_reports.items():
-            total_admin_usage[admin_id] += failed_usage
+            total_admin_usage[admin_id] = failed_usage
         for admin_id, current_usage in admin_usage.items():
             total_admin_usage[admin_id] += current_usage
 
