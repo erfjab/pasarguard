@@ -833,6 +833,7 @@ if runtime_settings.role.runs_node:
         seconds=job_settings.record_user_usages_interval,
         start_date=dt.now(tz.utc) + td(seconds=30),
         id="record_user_usages",
+        max_instances=1,
     )
 
     scheduler.add_job(
@@ -841,4 +842,5 @@ if runtime_settings.role.runs_node:
         seconds=job_settings.record_node_usages_interval,
         start_date=dt.now(tz.utc) + td(seconds=15),
         id="record_node_usages",
+        max_instances=1,
     )
