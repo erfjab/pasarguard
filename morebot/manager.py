@@ -10,7 +10,7 @@ logger = logging.getLogger("uvicorn.error")
 
 
 class Morebot:
-    _timeout = 3
+    _timeout = 60
     _failed_reports: Dict[int, int] = defaultdict(int)
 
     @classmethod
